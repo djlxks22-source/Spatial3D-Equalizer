@@ -24,6 +24,7 @@ jobs:
 
       - name: Download Oboe + KissFFT
         run: |
+          mkdir -p native/cpp
           git clone --depth 1 https://github.com/google/oboe.git native/cpp/oboe
           git clone --depth 1 https://github.com/mborgerding/kissfft.git native/cpp/kissfft
 
