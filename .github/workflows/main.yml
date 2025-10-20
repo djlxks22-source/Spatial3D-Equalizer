@@ -33,21 +33,25 @@ jobs:
             rmdir TempProject
           fi
 
-      # 4. INSTALA DEPENDÊNCIAS (React Navigation + Native Stack)
-      - name: Install React Navigation
+      # 4. INSTALA DEPENDÊNCIAS (SEM CI)
+      - name: Install Dependencies
         run: |
           npm install @react-navigation/native @react-navigation/native-stack
           npm install react-native-screens react-native-safe-area-context
-          npm install
+          npm install  # Instala tudo do package.json
 
-      # 5. SETUP JAVA
+      # 5. GERA package-lock.json (opcional, mas bom)
+      - name: Generate lock file
+        run: npm install --package-lock-only
+
+      # 6. SETUP JAVA
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 6. SETUP ANDROID SDK + NDK
+      # 7. SETUP ANDROID SDK + NDK
       - name: Setup Android SDK & NDK
         uses: nttld/setup-ndk@v1
         with:
@@ -59,7 +63,7 @@ jobs:
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "platform-tools" "build-tools;34.0.0"
 
-      # 7. DOWNLOAD OBOE + KISSFFT
+      # 8. DOWNLOAD OBOE + KISSFFT
       - name: Download Oboe + KissFFT
         run: |
           mkdir -p native/cpp
@@ -67,7 +71,7 @@ jobs:
           git clone --depth 1 https://github.com/google/oboe.git native/cpp/oboe
           git clone --depth 1 https://github.com/mborgerding/kissfft.git native/cpp/kissfft
 
-      # 8. CONFIGURA NDK E ABI
+      # 9. CONFIGURA NDK E ABI
       - name: Configurar NDK e ABI
         run: |
           sed -i '/android {/a \
@@ -81,7 +85,7 @@ jobs:
                   prefab true\n\
               }' android/app/build.gradle
 
-      # 9. BUILD APK
+      # 10. BUILD APK
       - name: Build APK
         run: |
           cd android
@@ -91,8 +95,7 @@ jobs:
             -PabiFilters=arm64-v8a,armeabi-v7a \
             -PenableSeparateBuildPerCPUArchitecture=true
 
-      # 10. UPLOAD APKs $€
-
+      # 11. UPLOAD APKs
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
