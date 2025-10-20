@@ -1,38 +1,65 @@
-name: Build APK Free (Auto Init)
+name: Build APK Free (Full Auto + Navigation)
 
 on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
     steps:
-      - name: Checkout
+      - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      # 1. SETUP NODE
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
+      # 2. INSTALA REACT NATIVE CLI
       - name: Install React Native CLI
         run: npm install -g react-native-cli
 
-      - name: Init React Native Project (if not exists)
+      # 3. CRIA PROJETO REACT NATIVE (se não existir)
+      - name: Init React Native Project
         run: |
           if [ ! -d "android" ]; then
+            echo "Iniciando projeto React Native..."
             npx react-native@0.73.6 init TempProject --version 0.73.6 --skip-install
             mv TempProject/* .
             mv TempProject/.??* .
             rmdir TempProject
-            npm install
           fi
 
+      # 4. INSTALA DEPENDÊNCIAS (React Navigation + Native Stack)
+      - name: Install React Navigation
+        run: |
+          npm install @react-navigation/native @react-navigation/native-stack
+          npm install react-native-screens react-native-safe-area-context
+          npm install
+
+      # 5. SETUP JAVA
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
+      # 6. SETUP ANDROID SDK + NDK
+      - name: Setup Android SDK & NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          add-to-path: true
+
+      - name: Install Android SDK Tools
+        run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "platform-tools" "build-tools;34.0.0"
+
+      # 7. DOWNLOAD OBOE + KISSFFT
       - name: Download Oboe + KissFFT
         run: |
           mkdir -p native/cpp
@@ -40,15 +67,35 @@ jobs:
           git clone --depth 1 https://github.com/google/oboe.git native/cpp/oboe
           git clone --depth 1 https://github.com/mborgerding/kissfft.git native/cpp/kissfft
 
+      # 8. CONFIGURA NDK E ABI
+      - name: Configurar NDK e ABI
+        run: |
+          sed -i '/android {/a \
+              ndkVersion "25.2.9519653"\n\
+              defaultConfig {\n\
+                  ndk {\n\
+                      abiFilters "arm64-v8a", "armeabi-v7a"\n\
+                  }\n\
+              }\n\
+              buildFeatures {\n\
+                  prefab true\n\
+              }' android/app/build.gradle
+
+      # 9. BUILD APK
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleRelease \
-            -PabiFilters=arm64-v8a,armeabi-v7a
+          ./gradlew clean
+          ./gradlew assembleRelease \
+            -PabiFilters=arm64-v8a,armeabi-v7a \
+            -PenableSeparateBuildPerCPUArchitecture=true
+
+      # 10. UPLOAD APKs $€
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: eq-master-free-apks
+          name: spatial3d-equalizer-apks
           path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 7
