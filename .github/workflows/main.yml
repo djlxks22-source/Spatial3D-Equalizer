@@ -25,6 +25,7 @@ jobs:
       - name: Download Oboe + KissFFT
         run: |
           mkdir -p native/cpp
+          rm -rf native/cpp/oboe native/cpp/kissfft
           git clone --depth 1 https://github.com/google/oboe.git native/cpp/oboe
           git clone --depth 1 https://github.com/mborgerding/kissfft.git native/cpp/kissfft
 
@@ -32,7 +33,9 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease -PabiFilters=arm64-v8a,armeabi-v7a
+          ./gradlew clean assembleRelease \
+            -PabiFilters=arm64-v8a,armeabi-v7a \
+            -PenableSeparateBuildPerCPUArchitecture=true
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
