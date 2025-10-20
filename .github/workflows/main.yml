@@ -1,4 +1,4 @@
-name: Build APK Free
+name: Build APK Free (Auto Init)
 
 on: [push, workflow_dispatch]
 
@@ -6,21 +6,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install deps
-        run: npm install
+      - name: Install React Native CLI
+        run: npm install -g react-native-cli
+
+      - name: Init React Native Project (if not exists)
+        run: |
+          if [ ! -d "android" ]; then
+            npx react-native@0.73.6 init TempProject --version 0.73.6 --skip-install
+            mv TempProject/* .
+            mv TempProject/.??* .
+            rmdir TempProject
+            npm install
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Download Oboe + KissFFT
         run: |
@@ -34,8 +45,7 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew clean assembleRelease \
-            -PabiFilters=arm64-v8a,armeabi-v7a \
-            -PenableSeparateBuildPerCPUArchitecture=true
+            -PabiFilters=arm64-v8a,armeabi-v7a
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
