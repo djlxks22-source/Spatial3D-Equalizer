@@ -1,15 +1,6 @@
 import { NativeModules } from 'react-native';
+const { AudioProcessor } = NativeModules;
 
-const { SuperpoweredModule } = NativeModules;
-
-export const initAudio = () => {
-  SuperpoweredModule.init();
-};
-
-export const setBassBoost = (enabled) => {
-  SuperpoweredModule.setBassBoost(enabled);
-};
-
-export const set3DAudio = (enabled) => {
-  SuperpoweredModule.set3DAudio(enabled);
-};
+export const startAudio = () => AudioProcessor.start();
+export const setBassBoost = (on) => AudioProcessor.setBassBoost(on);
+export const set3DAudio = (on) => AudioProcessor.set3DAudio(on);
